@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub'dan 3D Çiçek Yükleme</title>
+    <title>Sonsuza Kadar 🌷</title>
     <style>
-        /* Arka planı gerçeğe yakın bir his için yumuşak bir degrade yapalım */
         body { margin: 0; overflow: hidden; background: radial-gradient(#ffffff, #e0f2f1); font-family: sans-serif; }
         canvas { display: block; }
         #yukleniyor {
@@ -13,12 +12,13 @@
             transform: translate(-50%, -50%);
             font-size: 1.5rem; color: #00695c;
             background: rgba(255,255,255,0.8); padding: 10px 20px; border-radius: 20px;
+            z-index: 100;
         }
     </style>
 </head>
 <body>
 
-<div id="yukleniyor">Çiçek Buketi Yükleniyor...</div>
+<div id="yukleniyor">Çiçekler hazırlanıyor...</div>
 
 <script type="importmap">
   {
@@ -34,259 +34,69 @@
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-    // --- 1. GİTHUB RAW LİNKİNİ BURAYA YAPIŞTIR ---
-    // ÖNEMLİ: Link 'raw.githubusercontent.com' ile başlamalıdır.
-    const GITHUB_GLB_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/FlowerBouquet/glTF-Binary/FlowerBouquet.glb';
+    // --- 1. LİNK DÜZELTİLDİ ---
+    const GITHUB_GLB_URL = 'https://raw.githubusercontent.com/fortresdo/sonsuzakadar/main/flower_bouquet.glb';
 
-    // Örnek (Eğer kendi linkin yoksa denemek için bunu kullanabilirsin):
-    // const GITHUB_GLB_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/FlowerBouquet/glTF-Binary/FlowerBouquet.glb';
-
-
-    // --- TEMEL ÜÇGEN (SAHNE, KAMERA, RENDERER) ---
     const scene = new THREE.Scene();
-    
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Kamerayı bukete tam karşıdan bakacak şekilde konumlandırıyoruz
     camera.position.set(0, 1.5, 4); 
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true arka planı şeffaf yapar
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio); // Mobilde netlik için
-    // Gerçekçi renkler ve gölgeler için ayarlar
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.outputColorSpace = THREE.SRGBColorSpace; 
     renderer.shadowMap.enabled = true;
     document.body.appendChild(renderer.domElement);
 
-    // --- FARE KONTROLLERİ ---
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Yumuşak dönüş efekti
-    controls.minDistance = 1; // Çok yaklaşmayı engelle
-    controls.maxDistance = 10; // Çok uzaklaşmayı engelle
+    controls.enableDamping = true;
 
-    // --- IŞIKLANDIRMA (Gerçekçilik için kritik) ---
-    // 1. Genel yumuşak ortam ışığı (gölgeleri aydınlatır)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
-    // 2. Yönlü ana ışık (güneş gibi, detayları ve gölgeleri oluşturur)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(2, 5, 5); // Önden, yukarıdan ve sağdan
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(5, 10, 7.5);
     directionalLight.castShadow = true;
-    // Gölge kalitesini artır
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
     scene.add(directionalLight);
 
-    // --- GİTHUB'DAN MODELİ YÜKLEME ---
     let cicekBuketi = null;
     const loader = new GLTFLoader();
 
+    // --- 2. YÜKLEME KISMI DÜZELTİLDİ ---
     loader.load(GITHUB_GLB_URL, (gltf) => {
         cicekBuketi = gltf.scene;
         
-        // 1. Modeli Merkezle: Modelin dosyadaki orijinal pozisyonu bozuk olabilir.
-        // Onu tam sahnenin ortasına (0,0,0) alalım.
         const box = new THREE.Box3().setFromObject(cicekBuketi);
         const center = box.getCenter(new THREE.Vector3());
         cicekBuketi.position.sub(center); 
-        
-        // Gerekirse modeli biraz aşağı kaydır (sapı yere değsin diye)
         cicekBuketi.position.y = -1;
 
-        // 2. Bize Döndür: Eğer model ters duruyorsa Y ekseninde döndürebilirsin.
-        // cicekBuketi.rotation.y = Math.PI; // 180 derece döndür
-
-        // 3. Gölgeleri Aktif Et: Modelin her parçasına gölge özelliği ekle.
         cicekBuketi.traverse((node) => {
             if (node.isMesh) {
                 node.castShadow = true;
                 node.receiveShadow = true;
-                // Materyal netliğini artır
-                if(node.material) node.material.depthWrite = true;
             }
         });
 
         scene.add(cicekBuketi);
-        
-        // Yükleniyor yazısını kaldır
         document.getElementById('yukleniyor').style.display = 'none';
         
-    }, (xhr) => {
-        // Yükleme yüzdesini konsola yazdırabilirsin
-        // console.log((xhr.loaded / xhr.total * 100) + '% yüklendi');
-    }, (error) => {
-        console.error('GitHub model yüklenirken hata!', error);
-        document.getElementById('yukleniyor').innerText = 'Hata: Model yüklenemedi. Linki kontrol et.';
+    }, undefined, (error) => {
+        console.error('Hata:', error);
+        document.getElementById('yukleniyor').innerText = 'Çiçekler yüklenemedi :(';
     });
 
-    // --- ANİMASYON DÖNGÜSÜ ---
     function animate() {
         requestAnimationFrame(animate);
-
-        controls.update(); // Fare kontrollerini güncelle
-
-        // Eğer model yüklendiyse, ona hafif bir canlılık verelim
+        controls.update();
         if (cicekBuketi) {
             const time = Date.now() * 0.001;
-            // Kendi ekseninde çok yavaş dönsün
-            cicekBuketi.rotation.y += 0.002; 
-            // Hafifçe yukarı-aşağı süzülme efekti (rüzgar gibi)
-            cicekBuketi.position.y = Math.sin(time * 0.5) * 0.1 - 1; 
+            cicekBuketi.rotation.y += 0.003; 
+            cicekBuketi.position.y = Math.sin(time * 0.5) * 0.1 - 0.5; 
         }
-
         renderer.render(scene, camera);
     }
 
-    // --- PENCERE BOYUTLANDIRMA ---
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    animate();
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub'dan 3D Çiçek Yükleme</title>
-    <style>
-        /* Arka planı gerçeğe yakın bir his için yumuşak bir degrade yapalım */
-        body { margin: 0; overflow: hidden; background: radial-gradient(#ffffff, #e0f2f1); font-family: sans-serif; }
-        canvas { display: block; }
-        #yukleniyor {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 1.5rem; color: #00695c;
-            background: rgba(255,255,255,0.8); padding: 10px 20px; border-radius: 20px;
-        }
-    </style>
-</head>
-<body>
-
-<div id="yukleniyor">Çiçek Buketi Yükleniyor...</div>
-
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
-  }
-</script>
-
-<script type="module">
-    import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-    // --- 1. GİTHUB RAW LİNKİNİ BURAYA YAPIŞTIR ---
-    // ÖNEMLİ: Link 'raw.githubusercontent.com' ile başlamalıdır.
-    const GITHUB_GLB_URL = 'BURAYA_KOPYALADIGIN_RAW_LINKI_YAPISTIR.glb';
-
-    // Örnek (Eğer kendi linkin yoksa denemek için bunu kullanabilirsin):
-    // const GITHUB_GLB_URL = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/FlowerBouquet/glTF-Binary/FlowerBouquet.glb';
-
-
-    // --- TEMEL ÜÇGEN (SAHNE, KAMERA, RENDERER) ---
-    const scene = new THREE.Scene();
-    
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // Kamerayı bukete tam karşıdan bakacak şekilde konumlandırıyoruz
-    camera.position.set(0, 1.5, 4); 
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true arka planı şeffaf yapar
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio); // Mobilde netlik için
-    // Gerçekçi renkler ve gölgeler için ayarlar
-    renderer.outputColorSpace = THREE.SRGBColorSpace; 
-    renderer.shadowMap.enabled = true;
-    document.body.appendChild(renderer.domElement);
-
-    // --- FARE KONTROLLERİ ---
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true; // Yumuşak dönüş efekti
-    controls.minDistance = 1; // Çok yaklaşmayı engelle
-    controls.maxDistance = 10; // Çok uzaklaşmayı engelle
-
-    // --- IŞIKLANDIRMA (Gerçekçilik için kritik) ---
-    // 1. Genel yumuşak ortam ışığı (gölgeleri aydınlatır)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambientLight);
-
-    // 2. Yönlü ana ışık (güneş gibi, detayları ve gölgeleri oluşturur)
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
-    directionalLight.position.set(2, 5, 5); // Önden, yukarıdan ve sağdan
-    directionalLight.castShadow = true;
-    // Gölge kalitesini artır
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
-    scene.add(directionalLight);
-
-    // --- GİTHUB'DAN MODELİ YÜKLEME ---
-    let cicekBuketi = null;
-    const loader = new GLTFLoader();
-
-    loader.load(https://github.com/fortresdo/sonsuzakadar/raw/refs/heads/main/flower_bouquet.glb, (gltf) => {
-        cicekBuketi = gltf.scene;
-        
-        // 1. Modeli Merkezle: Modelin dosyadaki orijinal pozisyonu bozuk olabilir.
-        // Onu tam sahnenin ortasına (0,0,0) alalım.
-        const box = new THREE.Box3().setFromObject(cicekBuketi);
-        const center = box.getCenter(new THREE.Vector3());
-        cicekBuketi.position.sub(center); 
-        
-        // Gerekirse modeli biraz aşağı kaydır (sapı yere değsin diye)
-        cicekBuketi.position.y = -1;
-
-        // 2. Bize Döndür: Eğer model ters duruyorsa Y ekseninde döndürebilirsin.
-        // cicekBuketi.rotation.y = Math.PI; // 180 derece döndür
-
-        // 3. Gölgeleri Aktif Et: Modelin her parçasına gölge özelliği ekle.
-        cicekBuketi.traverse((node) => {
-            if (node.isMesh) {
-                node.castShadow = true;
-                node.receiveShadow = true;
-                // Materyal netliğini artır
-                if(node.material) node.material.depthWrite = true;
-            }
-        });
-
-        scene.add(cicekBuketi);
-        
-        // Yükleniyor yazısını kaldır
-        document.getElementById('yukleniyor').style.display = 'none';
-        
-    }, (xhr) => {
-        // Yükleme yüzdesini konsola yazdırabilirsin
-        // console.log((xhr.loaded / xhr.total * 100) + '% yüklendi');
-    }, (error) => {
-        console.error('GitHub model yüklenirken hata!', error);
-        document.getElementById('yukleniyor').innerText = 'Hata: Model yüklenemedi. Linki kontrol et.';
-    });
-
-    // --- ANİMASYON DÖNGÜSÜ ---
-    function animate() {
-        requestAnimationFrame(animate);
-
-        controls.update(); // Fare kontrollerini güncelle
-
-        // Eğer model yüklendiyse, ona hafif bir canlılık verelim
-        if (cicekBuketi) {
-            const time = Date.now() * 0.001;
-            // Kendi ekseninde çok yavaş dönsün
-            cicekBuketi.rotation.y += 0.002; 
-            // Hafifçe yukarı-aşağı süzülme efekti (rüzgar gibi)
-            cicekBuketi.position.y = Math.sin(time * 0.5) * 0.1 - 1; 
-        }
-
-        renderer.render(scene, camera);
-    }
-
-    // --- PENCERE BOYUTLANDIRMA ---
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
